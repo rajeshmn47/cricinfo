@@ -1,0 +1,53 @@
+{
+  "direction": {
+    "point": [],
+    "cover": [
+      "cover point"
+    ],
+    "long_on": [
+      "No chance for long-on"
+    ],
+    "mid_wicket": [
+      "deep mid wicket"
+    ],
+    "square_leg": [
+      "deep square leg",
+      "square leg umpire"
+    ],
+    "deep_square_leg": [
+      "on the off-side",
+      "on the off side"
+    ],
+    "fine_leg": [
+      "deep fine leg"
+    ],
+    "slip": [
+      "slips through",
+      "slip through"
+    ]
+  },
+  "shotType": {
+    "cut": [
+      "french cut",
+      "cut it off"
+    ]
+  },
+  "ballType": {
+    "good_length": [
+      "short of a good length",
+      "shorter than good length",
+      "fuller length delivery"
+    ]
+  },
+  "isCleanBowled": {
+    "isCleanBowled": [
+      "caught&bowled",
+      "bowled into the pitch"
+    ]
+  },
+  "lofted": {
+    "lofted": [
+      "reverse slogs"
+    ]
+  }
+}

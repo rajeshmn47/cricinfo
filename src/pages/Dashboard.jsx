@@ -1,471 +1,197 @@
-import { useRef, useEffect, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogTrigger, DialogContent, DialogHeader } from "@/components/ui/dialog"
-import { Filter, Search } from 'lucide-react';
-import Filters from '../components/Filters';
-import { Switch } from '../components/ui/switch';
-import { API } from '../actions/userAction';
-import { HTTPS_URL, URL } from '../constants/userConstants';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { DialogDescription, DialogTitle } from '@radix-ui/react-dialog';
-import VideoTrimmer from '../VideoTrimmer';
-import { inferDismissals } from '../utils/utils';
-import { useSelector, useDispatch } from 'react-redux';
-import { loadUser } from '../actions/userAction';
-import cricketSynonyms from '../utils/cricket_synonyms.json';
-
-const filters = [
-  'Match', 'Player', 'Shot Type', 'Over', 'Ball', 'Batting Team', 'Bowler', 'Striker', 'Non-Striker',
-  'Fielder', 'Wicket', 'Runs', 'Boundary', 'Sixes', 'Powerplay', 'Match Type', 'Pitch Type',
-  'Weather', 'Match Date', 'League'
-];
+import { URL } from '../constants/userConstants';
+import { useNavigate } from 'react-router-dom';
+import { API } from '@/actions/userAction';
+import { extractFieldsFromCommentary } from '../utils/extractFromCommentary';
 
 export default function Dashboard() {
-  const dispatch = useDispatch();
-  const { user } = useSelector(state => state.user || {});
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilters, setSelectedFilters] = useState({ batsman: 'virat kohli' });
-  const [filterValues, setFilterValues] = useState({ batsman: 'virat kohli' });
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false); // Simulating super admin status
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [selectedClip, setSelectedClip] = useState(null);
-  const [isDeleteMode, setIsDeleteMode] = useState(false);
-  const [selectedClipId, setSelectedClipId] = useState(null);
-  const [isEditClipOpen, setIsEditClipOpen] = useState(false);
-  const [selectedClips, setSelectedClips] = useState([]);
-  const [trimmingClip, setTrimmingClip] = useState(null);
-  const editClipForm = useRef(null);
-  const [clips, setClips] = useState([]);
+  const navigate = useNavigate();
+  const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedQuality, setSelectedQuality] = useState('720p');
+  const [editingItem, setEditingItem] = useState(null);
+  const [filterValues, setFilterValues] = useState({});
+  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [filteredMatches, setFilteredMatches] = useState(matches); // assume `matches` is the full list
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(12);
 
-  const filteredClips = clips
-    .filter((clip) => {
-      return Object.entries(filterValues).every(([key, value]) => {
-        if (!value) return true;
-        const clipValue = clip[key];
-
-        // Semantic matching for shotType, direction, ballType
-        if (["shotType", "direction", "ballType"].includes(key)) {
-          return (
-            matchesWithSynonyms(clip.commentary, value, key)
-          );
-        }
-
-        // Keeper Catch filter logic
-        if (key === 'isKeeperCatch') {
-          const commentary = clip.commentary?.toLowerCase() || "";
-          const keeperCatchSynonyms = cricketSynonyms.keeperCatch?.keeper_catch || [];
-          const catches = keeperCatchSynonyms.some(syn =>
-            clip.commentary?.toLowerCase().includes(syn.toLowerCase())
-          );
-          if (clip?.event?.toLowerCase() == "wicket") {
-            console.log(catches, clip?.commentary, 'catches');
-            return catches;
-          }
-          else {
-            return false;
-          }
-          //return true;
-        }
-
-        // Example for boolean filters (adjust as per your data)
-        if (key === 'isWicket') return clip.event === 'WICKET';
-        if (key === 'isFour') return clip.event === 'FOUR';
-        if (key === 'isSix') return clip.event === 'SIX';
-
-        // Example for duration range (adjust as per your data)
-        if (key === 'durationRange') {
-          const duration = clip.duration;
-          if (value === '0-2') return duration >= 0 && duration < 2;
-          if (value === '2-5') return duration >= 2 && duration < 5;
-          if (value === '5-10') return duration >= 5 && duration < 10;
-          if (value === '10+') return duration >= 10;
-          return true;
-        }
-
-        // Default: string includes (case-insensitive)
-        return clipValue && String(clipValue).toLowerCase().includes(String(value).toLowerCase());
-      });
-    });
-
-  // Calculate paginated clips
-  const paginatedClips = filteredClips.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-  const totalPages = Math.ceil(filteredClips.length / itemsPerPage);
-
-  // Only show admin controls if user is logged in and user.role is 'admin'
-  const isAdmin = user && user.role === "admin";
-  console.log(user, 'user')
   useEffect(() => {
-    dispatch(loadUser());
-    const fetchClips = async () => {
+    const fetchMatches = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${URL}/auth/allclips`);
-        //const clipsWithDuration = await Promise.all(
-        //  res.data.map((clip) => getClipWithDuration(clip))
-        //);
-        const enhancedClips = res.data.map((clip) => {
-          const inferred = inferDismissals(clip?.event, clip.commentary || "")
-          return { ...clip, ...inferred }
-        })
-        setClips(enhancedClips);
-        //setClips(clipsWithDuration);
+        const res = await API.get(`${URL}/allmatches`);
+        setMatches(res.data.matches || []);
       } catch (err) {
-        console.error("Error fetching clips:", err);
+        console.error("Error fetching matches:", err);
       } finally {
         setLoading(false);
       }
     };
+    fetchMatches();
+  }, []);
 
-    fetchClips();
-  }, [dispatch]);
+  useEffect(() => {
+    if (matches?.length > 0 && selectedFilter) {
+      const filtered = getFilteredMatches()
+      setFilteredMatches(filtered);
+    }
+  }, [matches, selectedFilter])
 
-  const getClipWithDuration = (clip) => {
-    return new Promise((resolve) => {
-      const video = document.createElement("video");
-      video.src = `${URL}/mockvideos/${clip.clip}`;
-      video.preload = "metadata";
-      video.onloadedmetadata = () => {
-        resolve({ ...clip, duration: video.duration });
-      };
-      video.onerror = () => {
-        // fallback in case video fails to load
-        resolve({ ...clip, duration: 0 });
-      };
-    });
+  useEffect(() => {
+    if (!editingItem) return;
+    const { ballType, direction, shotType } = extractFieldsFromCommentary(editingItem.commText);
+    setFilterValues(prev => ({
+      ...prev,
+      ...(ballType && { ballType }),
+      ...(direction && { direction }),
+      ...(shotType && { shotType }),
+      ...(connection && { connection }),
+      ...(keeperCatch && { keeperCatch })
+    }));
+  }, [editingItem]);
+
+  const handleView = (match) => {
+    // Navigate to match details page or perform any action
+    console.log("Viewing match:", match);
+    navigate(`/match/${match.matchId}`); // Assuming you have a route set up for match details
   };
 
-  const handleFilterChange = (key, value) => {
-    setFilterValues((prev) => ({ ...prev, [key]: value }))
-  }
-
-  const handleDownloadSelected = () => {
-    selectedClips.forEach((clip) => {
-      const link = document.createElement("a");
-      link.href = `${URL}/mockvideos/${clip}`;
-      link.download = clip;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
+  const filterMatches = (filterKey) => {
+    setSelectedFilter(filterKey);
   };
 
-  const handleMergeAndDownload = async () => {
-    setLoading(true)
-    const response = await fetch(`${URL}/auth/merge`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clips: selectedClips }),
-    });
-    console.log(response, 'res');
-    const res = await response.json()
-    console.log(res, 'res');
-    const downloadUrl = `${URL}/mockvideos/${res.file}`;
-    const a = document.createElement('a');
-    a.target = '_blank';
-    a.href = downloadUrl;
-    a.download = res.file;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setLoading(false)
-  };
-
-  const videos = Array.from({ length: 10 }).map((_, idx) => ({
-    id: idx,
-    title: `Clip ${idx + 1}`,
-    videoUrl: `https://www.example.com/clip${idx + 1}.mp4`,
-  }));
-
-  const handleEditSave = (updatedClip) => {
-    // Mock request delay
-    setTimeout(() => {
-      setClips(prev =>
-        prev.map(c => c.clip === updatedClip.clip ? updatedClip : c)
-      )
-      alert("Clip updated (mock)")
-    }, 300)
+  const currentDate = new Date();
+  function getFilteredMatches() {
+    const filtered = selectedFilter === 'all'
+      ? matches
+      : matches.filter(match => {
+        const matchDate = new Date(match.date);
+        const matchEndDate = new Date(match.enddate);
+        if (selectedFilter === 'ongoing') {
+          return matchDate <= currentDate && matchEndDate >= currentDate;
+        } else if (selectedFilter === 'upcoming') {
+          return matchDate > currentDate;
+        } else if (selectedFilter === 'completed') {
+          return match?.matchlive[0]?.result?.toLowerCase() === 'complete';
+          //return matchEndDate < currentDate;
+        } else if (selectedFilter === 'delayedOrAbandoned') {
+          // Matches that are genuinely delayed or abandoned
+          const isDelayedOrAbandoned = match.matchlive?.[0]?.result === 'delayed' || match.matchlive?.[0]?.result?.toLowerCase() === 'abandon';
+          return isDelayedOrAbandoned;
+        } else if (selectedFilter === 'notUpdated') {
+          // Matches that are not updated due to Cricbuzz API key not working
+          if (currentDate > matchDate) {
+            const isNotUpdated = (!match.matchlive || !match.matchlive[0]?.result) || (currentDate > matchEndDate && !(match.matchlive?.[0]?.result?.toLowerCase() == 'complete' || match.matchlive?.[0]?.result?.toLowerCase() == 'abandon'));
+            return isNotUpdated;
+          }
+          else {
+            return false
+          }
+        }
+        return false;
+      });
+    return filtered;
   }
 
-  const toggleSelect = (clipName) => {
-    setSelectedClips(prev =>
-      prev.includes(clipName)
-        ? prev.filter(name => name !== clipName)
-        : [...prev, clipName]
-    )
+  if (loading) {
+    return <div className="p-8 text-center text-lg">Loading matches...</div>;
   }
-
-  const deleteSelected = async () => {
-    if (!confirm("Delete all selected clips?")) return
-    setTimeout(() => {
-      setClips(prev => prev.filter(c => !selectedClips.includes(c.clip)))
-      setSelectedClips([])
-    }, 300)
-    await axios.post(`${URL}/auth/delete-multiple`, { clips: selectedClips })
-  }
-
-  const handleDelete = async (clip) => {
-    //if (!confirm("Delete all selected clips?")) return
-    await axios.delete(`${URL}/auth/delete-clip/${clip._id}`);
-    setClips(prev => prev.filter(c => c._id !== clip._id));
-  }
-
-  console.log(filterValues, 'filterValues');
-  //console.log(filteredClips, 'filteredClips');
 
   return (
-    <div className="p-3 sm:p-4 space-y-4 bg-gradient-to-br from-blue-50 to-white min-h-screen">
-      {loading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
-        </div>
-      )}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2 px-2 sm:px-4 rounded-xl bg-gradient-to-r from-blue-100/80 to-white/80 shadow-md border border-blue-100 mb-2">
-        <div className="flex flex-col items-center sm:items-start w-full sm:w-auto">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-blue-900 drop-shadow-sm text-center sm:text-left tracking-tight leading-tight mb-1">Cricket Clips Dashboard</h1>
-          <span className="text-xs sm:text-sm text-blue-700 font-medium tracking-wide opacity-80">AI-powered search &amp; video management</span>
-        </div>
-        <form className="flex items-center w-full sm:w-auto max-w-lg bg-white/90 rounded-lg shadow-sm border border-blue-200 px-2 py-1 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
-          <Search className="text-blue-400 mr-2 w-5 h-5" />
-          <Input
-            placeholder="Search clips, players, events..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 bg-transparent border-0 focus:ring-0 text-sm sm:text-base placeholder:text-blue-300"
-            aria-label="Search clips or players"
-          />
-        </form>
-      </div>
-      {/* Video Quality Selector */}
-      <div className="w-full flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
-        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 xs:gap-4 flex-1">
-          <label className="text-xs sm:text-sm font-medium text-gray-700">Video Quality:</label>
-          <select
-            className="p-2 border border-gray-300 rounded bg-white/80 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 text-xs sm:text-sm w-full xs:w-auto"
-            value={selectedQuality}
-            onChange={(e) => setSelectedQuality(e.target.value)}
+    <div className="p-4 max-w-5xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold mb-4">Cricket Matches</h1>
+      <div className="flex justify-center flex-wrap gap-2 mb-4">
+        {[
+          { key: "notUpdated", label: "Not Updated" },
+          { key: "all", label: "All Matches" },
+          { key: "ongoing", label: "Ongoing" },
+          { key: "upcoming", label: "Upcoming" },
+          { key: "completed", label: "Completed" },
+          { key: "delayedOrAbandoned", label: "Delayed or Abandoned" },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => filterMatches(key)}
+            className={`px-4 py-2 rounded font-semibold text-sm border 
+        ${selectedFilter === key
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
+              }
+      `}
           >
-            <option value="720p">High (720p)</option>
-            <option value="360p">Low (360p)</option>
-          </select>
-        </div>
-        <div className="flex flex-col xs:flex-row flex-wrap gap-2 flex-1 justify-end">
-          <div className="flex items-center justify-end gap-2 w-full">
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (selectedClips.length === filteredClips.length) {
-                  setSelectedClips([]); // Deselect all
-                } else {
-                  setSelectedClips(filteredClips.map((clip) => clip.clip)); // Select all visible
-                }
-              }}
-              className="border-blue-300 hover:bg-blue-50 text-xs sm:text-base w-full xs:w-auto"
-            >
-              {selectedClips.length === filteredClips.length ? 'Deselect All' : 'Select All'}
-            </Button>
-          </div>
-          <Button
-            variant="secondary"
-            disabled={selectedClips.length === 0}
-            onClick={handleDownloadSelected}
-            className="bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs sm:text-base w-full xs:w-auto"
-          >
-            📥 Download Selected
-          </Button>
-          <Button
-            variant="default"
-            disabled={selectedClips.length === 0}
-            onClick={handleMergeAndDownload}
-            className="bg-blue-500 text-white hover:bg-blue-600 text-xs sm:text-base w-full xs:w-auto"
-          >
-            🎞️ Combine & Download
-          </Button>
-        </div>
-      </div>
-      <Filters values={filterValues} onChange={handleFilterChange} clips={clips} />
-      {isAdmin && selectedClips.length > 0 && (
-        <div className="flex justify-end">
-          <Button
-            variant="destructive"
-            className="text-white bg-red-500 border border-red-300 hover:bg-red-600 text-xs sm:text-base"
-            onClick={deleteSelected}
-          >
-            Delete Selected ({selectedClips.length})
-          </Button>
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-4 justify-between mb-2">
-        <p className="text-sm text-muted-foreground">
-          {filteredClips.length} item{filteredClips.length !== 1 && "s"} selected
-        </p>
-        <div className="flex items-center gap-2">
-          <label htmlFor="itemsPerPage" className="text-sm text-gray-700 font-medium">Items per page:</label>
-          <select
-            id="itemsPerPage"
-            className="p-1 border border-gray-300 rounded bg-white/80 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 text-xs sm:text-base"
-            value={itemsPerPage}
-            onChange={e => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1); // Reset to first page on change
-            }}
-          >
-            {[6, 12, 24, 48, 100].map(num => (
-              <option key={num} value={num}>{num}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 pt-4">
-        {paginatedClips.map(clip => (
-          <Card key={clip._id} className="relative shadow-lg hover:shadow-2xl transition-shadow bg-white/90 border-blue-100">
-            <video controls className="w-full rounded-t-xl aspect-video bg-black min-h-[180px] sm:min-h-[220px] md:min-h-[240px]">
-              <source src={`${URL}/mockvideos/${clip.clip}`} type="video/mp4" />
-            </video>
-            <CardContent className='relative space-y-1 pt-2'>
-              <p className="font-semibold text-base sm:text-lg text-blue-900">{clip.batsman}</p>
-              <p className="text-xs sm:text-sm text-gray-600">vs {clip.bowler}</p>
-              <p className="text-xs sm:text-sm font-medium text-blue-600">{clip.event}</p>
-              {/*<p className="font-semibold">{clip.duration}</p>*/}
-              <Checkbox
-                checked={selectedClips.includes(clip.clip)}
-                onCheckedChange={() => toggleSelect(clip.clip)}
-                className="absolute top-2 right-2 border border-blue-400 bg-white/80"
-              />
-              {isAdmin && (
-                <div className="flex gap-2 mt-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="border-blue-300 text-xs sm:text-base">Edit</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <EditClipForm clip={clip} onSave={handleEditSave} />
-                    </DialogContent>
-                  </Dialog>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className='text-white bg-red-500 border border-red-300 hover:bg-red-600 text-xs sm:text-base'
-                    onClick={() => handleDelete(clip)}
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs sm:text-base"
-                    onClick={() => setTrimmingClip(clip)}
-                  >
-                    ✂️ Trim
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            {label}
+          </button>
         ))}
       </div>
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-6">
-          <Button
-            variant="outline"
-            className="px-2 sm:px-3 py-1 text-xs sm:text-base"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(currentPage - 1)}
-          >
-            Previous
-          </Button>
-          <span className="text-blue-900 font-semibold text-xs sm:text-base">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            className="px-2 sm:px-3 py-1 text-xs sm:text-base"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(currentPage + 1)}
-          >
-            Next
-          </Button>
+
+      {filteredMatches?.map((match) => (
+        <div
+          key={match._id}
+          className="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row items-center gap-4"
+        >
+          {/* Teams */}
+          <div className="flex items-center gap-4 flex-1">
+            <div className="flex flex-col items-center">
+              <img
+                src={match.teamHomeFlagUrl}
+                alt={match.teamHomeCode}
+                className="w-12 h-12 object-contain mb-1"
+              />
+              <span className="text-sm font-semibold capitalize">{match.teamHomeName}</span>
+              <span className="text-xs text-gray-500 uppercase">{match.teamHomeCode}</span>
+            </div>
+            <span className="text-lg font-bold text-gray-600">vs</span>
+            <div className="flex flex-col items-center">
+              <img
+                src={match.teamAwayFlagUrl}
+                alt={match.teamAwayCode}
+                className="w-12 h-12 object-contain mb-1"
+              />
+              <span className="text-sm font-semibold capitalize">{match.teamAwayName}</span>
+              <span className="text-xs text-gray-500 uppercase">{match.teamAwayCode}</span>
+            </div>
+          </div>
+          {/* Match Info */}
+          <div className="flex-1">
+            <div className="font-bold text-base mb-1">{match.matchTitle}</div>
+            <div className="text-xs text-gray-600 mb-1">
+              Format: <span className="uppercase">{match.format}</span> | Type: {match.type?.toUpperCase()}
+            </div>
+            <div className="text-xs text-gray-600 mb-1">
+              Start: {new Date(match.date).toLocaleString()} <br />
+              End: {new Date(match.enddate).toLocaleString()}
+            </div>
+            <div className="text-xs text-gray-600 mb-1">
+              Series ID: <span className="font-mono">{match.seriesId}</span>
+            </div>
+            {/* Contest IDs */}
+            <div className="mt-2">
+              <div className="font-semibold text-sm mb-1">Contests:</div>
+              <ul className="flex flex-wrap gap-2">
+                {match.contestId && match.contestId.length > 0 ? (
+                  match.contestId.map((cid) => (
+                    <li
+                      key={cid}
+                      className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-mono"
+                    >
+                      {cid}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-400 text-xs">No contests</li>
+                )}
+              </ul>
+            </div>
+            {/* View Button */}
+            <button
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              onClick={() => handleView(match)} // Add your handler if needed
+            >
+              View
+            </button>
+          </div>
         </div>
-      )}
-      {trimmingClip && (
-        <Dialog open={!!trimmingClip} onOpenChange={() => setTrimmingClip(null)}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Trim Clip</DialogTitle>
-              <DialogDescription>Adjust the start and end time before trimming.</DialogDescription>
-            </DialogHeader>
-            <VideoTrimmer
-              videoFileUrl={`${URL}/mockvideos/${trimmingClip.clip}`}
-              onClose={() => setTrimmingClip(null)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      ))}
     </div>
-  );
-}
-
-function EditClipForm({ clip, onSave }) {
-  const [form, setForm] = useState({ ...clip })
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setForm({ ...form, [name]: value })
-  }
-
-  const handleSave = () => {
-    onSave(form)
-  }
-
-  return (
-    <div className="space-y-4">
-      <Input name="batsman" value={form.batsman} onChange={handleChange} placeholder="Batsman" />
-      <Input name="bowler" value={form.bowler} onChange={handleChange} placeholder="Bowler" />
-      <Input name="event" value={form.event} onChange={handleChange} placeholder="Event" />
-      <Input name="over" value={form.over} onChange={handleChange} placeholder="Over" />
-      <Button onClick={handleSave}>Save</Button>
-    </div>
-  )
-}
-
-const synonymMap = {
-  shotType: {
-    inside_out: ["inside out", "extra cover", "over covers", "inside out drive"],
-    uppercut: ["upper cut", "uppercut"],
-    scoop: ["scoop", "ramp shot", "paddle scoop"],
-    // ...add more shot synonyms
-  },
-  direction: {
-    fine_leg: ["fine leg", "short fine", "deep fine leg", "leg boundary"],
-    long_on: ["long on", "deep long on"],
-    long_off: ["long off", "deep long off"],
-    // ...add more direction synonyms
-  },
-  // Add for fielders if needed
-};
-
-function matchesWithSynonyms(clipValue, filterValue, key) {
-  if (!clipValue || !filterValue) return false;
-  const normalizedClip = String(clipValue).toLowerCase().replace(/[_\s]/g, "");
-  const normalizedFilter = String(filterValue).toLowerCase().replace(/[_\s]/g, "");
-  // Direct match
-  if (normalizedClip.includes(normalizedFilter)) return true;
-  // Synonym match
-  const synonyms = cricketSynonyms[key]?.[filterValue] || [];
-  return synonyms.some(syn =>
-    normalizedClip.includes(syn.replace(/[_\s]/g, ""))
   );
 }

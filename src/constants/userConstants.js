@@ -60,13 +60,13 @@ function geturl() {
         // return "http://dream-env.eba-6d6ds7up.us-east-1.elasticbeanstalk.com";
         // return "https://backendforpuand-dream11.onrender.com";
         // return 'https://apk.thepowerplay.co';
-        // return 'http://localhost:9000';
+         return 'http://localhost:9000';
         // return 'http://192.168.237.175:8000';
         // return 'http://46.28.44.4:8000';
         // return "https://dreamelevenclonebackend-g4iw.onrender.com";
         // return "https://fantasycricket4u.com";
         // return "https://backend.dreambet11.io";
-         return "https://gamizo.duckdns.org";
+        // return "https://gamizo.duckdns.org";
     }
     // return "https://dreamelevenclonebackend-7l34.onrender.com";
     // return "https://dreamelevenclonebackend-1v8e.onrender.com";

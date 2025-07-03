@@ -46,6 +46,38 @@ function Filters({ values, onChange, clips }) {
     name,
   }));
 
+  const connectionGroups = {
+    "Clean Contact": [
+      { id: "well_timed", name: "Well Timed" },
+      { id: "middle", name: "Middle" },
+      { id: "perfect_timing", name: "Perfect Timing" },
+      { id: "sweet_spot", name: "Sweet Spot" }
+    ],
+    "Mistimed": [
+      { id: "miscue", name: "Miscue" },
+      { id: "mistimed", name: "Mistimed" },
+      { id: "toe_end", name: "Toe End" },
+      { id: "splice", name: "Splice" }
+    ],
+    "Edges": [
+      { id: "top_edge", name: "Top Edge" },
+      { id: "inside_edge", name: "Inside Edge" },
+      { id: "outside_edge", name: "Outside Edge" },
+      { id: "nick", name: "Nick" }
+    ],
+    "Glove": [
+      { id: "glove", name: "Glove" },
+    ],
+    "No Contact": [
+      { id: "air_shot", name: "Air Shot" },
+      { id: "beaten", name: "Beaten" }
+    ],
+    "Other": [
+      { id: "defensive_block", name: "Defensive Block" },
+      { id: "other", name: "Other" }
+    ]
+  };
+
   const shotTypes = [
     { id: "cover_drive", name: "Cover Drive" },
     { id: "straight_drive", name: "Straight Drive" },
@@ -67,6 +99,7 @@ function Filters({ values, onChange, clips }) {
     { id: "dab", name: "Dab" },
     { id: "defensive_shot", name: "Defensive Shot" },
     { id: "reverse_hit", name: "Reverse Hit" },
+    { id: "reverse_slap", name: "Reverse Slap" },
     { id: "scoop", name: "Scoop" },
     { id: "ramp_shot", name: "Ramp Shot" },
     { id: "uppercut", name: "Uppercut" },
@@ -113,6 +146,7 @@ function Filters({ values, onChange, clips }) {
   ];
 
   const directionOptions = [
+    { id: "straight", name: "straight" },
     { id: "long_on", name: "Long On" },
     { id: "long_off", name: "Long Off" },
     { id: "mid_on", name: "Mid On" },
@@ -142,6 +176,7 @@ function Filters({ values, onChange, clips }) {
     { id: "short_third_man", name: "Short Third Man" },
     { id: "silly_mid_off", name: "Silly Mid Off" },
     { id: "silly_mid_on", name: "Silly Mid On" },
+    { id: "behind", name: "Behind" },
     { id: "other", name: "Other" }
   ];
 
@@ -206,6 +241,7 @@ function Filters({ values, onChange, clips }) {
     },
     { type: "select", label: "Ball Type", key: "ballType", options: ballTypes },
     { type: "select", label: "Direction", key: "direction", options: directionOptions },
+    { key: "connection", label: "Connection Type", type: "select", groups: connectionGroups },
   ]
 
   // Define which filters are basic (show by default)
@@ -238,26 +274,56 @@ function Filters({ values, onChange, clips }) {
         {visibleFilters.map((filter) => {
           if (filter.type === "select") {
             return (
-              <div key={filter.key} className="mb-2 w-full min-w-0">
-                <Label className="mb-1 block text-blue-900 font-semibold tracking-wide">{filter.label}</Label>
-                <Select
-                  className="w-full"
-                  value={values[filter.key] || ""}
-                  onValueChange={(value) => onChange(filter.key, value === "clear" ? null : value)}
-                >
-                  <SelectTrigger className="w-full min-w-0 rounded-lg border-blue-200 bg-white/80 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 shadow-sm">
-                    <SelectValue placeholder={`Select ${filter.label}`} className="cursor-pointer text-gray-700" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-lg bg-white shadow-lg">
-                    <SelectItem value="clear" className="text-gray-400 italic">Select Option</SelectItem>
-                    {filter.options.map((opt) => (
-                      <SelectItem key={opt.id} value={opt.id} className="hover:bg-blue-50 focus:bg-blue-100">
-                        {opt.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              filter.groups
+                ?
+                <div key={filter?.key} className="mb-4 w-full">
+                  <Label className="mb-1 block text-blue-900 font-semibold tracking-wide">
+                    {filter.label}
+                  </Label>
+                  <Select
+                    value={values[filter.key] || ""}
+                    onValueChange={(value) => onChange(filter.key, value === "clear" ? null : value)}
+                  >
+                    <SelectTrigger className="w-full rounded-lg border-blue-200 bg-white/80 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 shadow-sm">
+                      <SelectValue placeholder={`Select ${filter.label}`} className="cursor-pointer text-gray-700" />
+                    </SelectTrigger>
+
+                    <SelectContent className="rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+                      <SelectItem value="clear" className="text-gray-400 italic">Select Option</SelectItem>
+
+                      {Object.entries(connectionGroups).map(([groupName, items]) => (
+                        <div key={groupName}>
+                          <div className="px-3 py-1 text-xs font-medium text-gray-500">{groupName}</div>
+                          {items.map((opt) => (
+                            <SelectItem key={opt.id} value={opt.id} className="hover:bg-blue-50 focus:bg-blue-100">
+                              {opt.name}
+                            </SelectItem>
+                          ))}
+                        </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                : <div key={filter.key} className="mb-2 w-full min-w-0">
+                  <Label className="mb-1 block text-blue-900 font-semibold tracking-wide">{filter.label}</Label>
+                  <Select
+                    className="w-full"
+                    value={values[filter.key] || ""}
+                    onValueChange={(value) => onChange(filter.key, value === "clear" ? null : value)}
+                  >
+                    <SelectTrigger className="w-full min-w-0 rounded-lg border-blue-200 bg-white/80 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 shadow-sm">
+                      <SelectValue placeholder={`Select ${filter.label}`} className="cursor-pointer text-gray-700" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg bg-white shadow-lg">
+                      <SelectItem value="clear" className="text-gray-400 italic">Select Option</SelectItem>
+                      {filter.options.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.id} className="hover:bg-blue-50 focus:bg-blue-100">
+                          {opt.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
             )
           }
 
