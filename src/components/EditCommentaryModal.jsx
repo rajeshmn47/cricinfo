@@ -1,6 +1,6 @@
 import React from "react";
 import Filters from "./Filters";
-import { URL } from "@/constants/userConstants";
+import { URL, VIDEO_URL } from "@/constants/userConstants";
 
 export default function EditCommentaryModal({
   open,
@@ -84,7 +84,7 @@ export default function EditCommentaryModal({
                             muted
                             style={{ minWidth: "6rem" }}
                           >
-                            <source src={`${URL}/mockvideos/${clip.clip}`} type="video/mp4" />
+                            <source src={`${VIDEO_URL}/mockvideos/${clip.clip}`} type="video/mp4" />
                             Your browser does not support the video tag.
                           </video>
                         )}

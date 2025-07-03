@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, doc, query, getDoc, orderBy, onSnapshot } from 'firebase/firestore';
-import { URL } from '@/constants/userConstants';
+import { URL, VIDEO_URL } from '@/constants/userConstants';
 import Filters from '@/components/Filters';
 import cricketSynonyms from '../utils/cricket_synonyms.json';
 import exclusionMap from '../utils/exclusion_map.json';
@@ -404,7 +404,7 @@ export default function MatchDetails() {
                       controls
                       muted
                     >
-                      <source src={`${URL}/mockvideos/${item.videoLink}`} type="video/mp4" />
+                      <source src={`${VIDEO_URL}/mockvideos/${item.videoLink}`} type="video/mp4" />
                     </video>
                   )}
                 </div>
@@ -446,7 +446,7 @@ export default function MatchDetails() {
                         controls
                         muted
                       >
-                        <source src={`${URL}/mockvideos/${item.videoLink}`} type="video/mp4" />
+                        <source src={`${VIDEO_URL}/mockvideos/${item.videoLink}`} type="video/mp4" />
                       </video>
                     )}
                   </div>
