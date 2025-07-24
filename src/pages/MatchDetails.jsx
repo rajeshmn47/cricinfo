@@ -410,54 +410,69 @@ export default function MatchDetails() {
                 </div>
               </div>
             ) : (
-              <div
-                key={item.timestamp}
-                className="bg-white rounded-lg shadow mb-4 mx-4 px-4 py-3 flex items-start transition-shadow hover:shadow-lg"
-                style={{ maxWidth: 900, marginLeft: 'auto', marginRight: 'auto' }}
-              >
-                <div className="flex flex-col items-center justify-center pr-4 min-w-[38px]">
-                  <div className="w-8 h-8 flex justify-center items-center font-sans">
-                    {item.event === 'WICKET' ? (
-                      <span className="w-7 h-7 flex items-center justify-center rounded-full bg-red-600 text-white font-bold text-base shadow-md">
-                        W
-                      </span>
-                    ) : item.event === 'FOUR' ? (
-                      <span className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-900 text-white font-bold text-base shadow-md">
-                        4
-                      </span>
-                    ) : item.event === 'SIX' ? (
-                      <span className="w-7 h-7 flex items-center justify-center rounded-full bg-green-700 text-white font-bold text-base shadow-md">
-                        6
-                      </span>
-                    ) : null}
+              <div className='bg-white rounded-lg shadow mb-4 mx-2 sm:mx-4 px-2 sm:px-4 py-3 '>
+                <div
+                  key={item.timestamp}
+                  className="flex items-start flex-col sm:flex-row transition-shadow hover:shadow-lg"
+                  style={{ maxWidth: 900 }}
+                >
+                  <div className="flex flex-col items-center justify-center pr-4 min-w-[38px]">
+                    <div className="w-8 h-8 flex justify-center items-center font-sans">
+                      {item.event === 'WICKET' ? (
+                        <span className="w-7 h-7 flex items-center justify-center rounded-full bg-red-600 text-white font-bold text-base shadow-md">
+                          W
+                        </span>
+                      ) : item.event === 'FOUR' ? (
+                        <span className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-900 text-white font-bold text-base shadow-md">
+                          4
+                        </span>
+                      ) : item.event === 'SIX' ? (
+                        <span className="w-7 h-7 flex items-center justify-center rounded-full bg-green-700 text-white font-bold text-base shadow-md">
+                          6
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="text-xs text-gray-500 mt-1">{item.over}</span>
                   </div>
-                  <span className="text-xs text-gray-500 mt-1">{item.over}</span>
+                  <div className="flex flex-1 sm:items-center justify-between gap-4 flex-col sm:flex-row text-left">
+                    <div
+                      className="text-left leading-6 text-base text-gray-900 font-sans w-5/6 flex items-start gap-4"
+                    >
+                      <span className="">{item.commText}</span>
+                    </div>
+                    <button
+                      className="ml-0 sm:ml-4 px-2 sm:px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm self-start whitespace-nowrap"
+                      style={{ whiteSpace: 'nowrap' }}
+                      onClick={() => openEditModal(item)}
+                    >
+                      Edit Video Link
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-1 items-center justify-between gap-4">
-                  <div
-                    className="text-left leading-6 text-base text-gray-900 font-sans flex items-start gap-4"
-                    style={{ width: 650, minWidth: 200, maxWidth: 650, display: 'flex' }}
-                  >
-                    <span className="">{item.commText}</span>
 
-                    {item.videoLink && (
+                <div className=''>
+                  {item.videoLink && (
+                    <>{item?.breakdown &&
+                      <div className="flex flex-wrap items-center text-sm text-gray-700 gap-x-4 gap-y-2 my-2">
+                        <strong className=" text-gray-600">Score Breakdown:</strong>
+                        {Object.entries(item.breakdown).map(([key, value]) => (
+                          <div
+                            key={key}
+                            className="bg-gray-100 px-3 py-1 rounded-full shadow-sm border text-xs text-gray-800"
+                          >
+                            {key.replace(/([A-Z])/g, ' $1')}: <strong>{value}</strong>
+                          </div>
+                        ))}
+                      </div>}
                       <video
-                        className="w-48 max-h-32 rounded-lg shadow transition-shadow hover:shadow-lg"
+                        className="w-full sm:w-48 sm:max-h-32 rounded-lg shadow transition-shadow hover:shadow-lg"
                         controls
                         muted
                       >
                         <source src={`${VIDEO_URL}/mockvideos/${item.videoLink}`} type="video/mp4" />
                       </video>
-                    )}
-                  </div>
-                  <button
-                    className="ml-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm self-start whitespace-nowrap"
-                    style={{ whiteSpace: 'nowrap' }}
-                    onClick={() => openEditModal(item)}
-                  >
-                    Edit Video Link
-                  </button>
-                </div>
+                    </>
+                  )}</div>
               </div>
             )
           )
