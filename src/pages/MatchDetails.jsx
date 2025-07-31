@@ -417,7 +417,7 @@ export default function MatchDetails() {
                   style={{ maxWidth: 900 }}
                 >
                   <div className="flex flex-col items-center justify-center pr-4 min-w-[38px]">
-                    <div className="w-8 h-8 flex justify-center items-center font-sans">
+                    <div className="flex justify-center items-center font-sans">
                       {item.event === 'WICKET' ? (
                         <span className="w-7 h-7 flex items-center justify-center rounded-full bg-red-600 text-white font-bold text-base shadow-md">
                           W
@@ -432,7 +432,7 @@ export default function MatchDetails() {
                         </span>
                       ) : null}
                     </div>
-                    <span className="text-xs text-gray-500 mt-1">{item.over}</span>
+                    <span className="text-xs text-gray-500 mt-1">{item.overNumber}</span>
                   </div>
                   <div className="flex flex-1 sm:items-center justify-between gap-4 flex-col sm:flex-row text-left">
                     <div
@@ -453,7 +453,7 @@ export default function MatchDetails() {
                 <div className=''>
                   {item.videoLink && (
                     <>{item?.breakdown &&
-                      <div className="flex flex-wrap items-center text-sm text-gray-700 gap-x-4 gap-y-2 my-2">
+                      <div className="flex flex-wrap items-center text-sm text-gray-700 gap-x-4 gap-y-2 my-2 mb-3">
                         <strong className=" text-gray-600">Score Breakdown:</strong>
                         {Object.entries(item.breakdown).map(([key, value]) => (
                           <div

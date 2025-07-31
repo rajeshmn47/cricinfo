@@ -278,6 +278,19 @@ export function Commentary({ matchdata }) {
                   <source src={`${VIDEO_URL}/mockvideos/${p.videoLink}`} type="video/mp4" />
                 </VideoThumb>
               )}
+              {p?.breakdown && (
+                <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
+                  <strong>Score Breakdown:</strong>
+                  <ul style={{ marginLeft: 16, paddingLeft: 0, listStyleType: "none" }}>
+                    {Object.entries(p.breakdown).map(([key, value]) => (
+                      <li key={key}>
+                        {key}: <strong>{value}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
             </>
           ) : (
             <>
@@ -302,6 +315,19 @@ export function Commentary({ matchdata }) {
                   <source src={`${VIDEO_URL}/mockvideos/${p.videoLink}`} type="video/mp4" />
                 </VideoThumb>
               )}
+              {p?.breakdown && (
+                <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
+                  <strong>Score Breakdown:</strong>
+                  <ul style={{ marginLeft: 16, paddingLeft: 0, listStyleType: "none" }}>
+                    {Object.entries(p.breakdown).map(([key, value]) => (
+                      <li key={key}>
+                        {key}: <strong>{value}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
             </>
           )}
         </div>
