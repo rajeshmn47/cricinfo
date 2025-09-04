@@ -60,7 +60,7 @@ function geturl() {
         // return "http://dream-env.eba-6d6ds7up.us-east-1.elasticbeanstalk.com";
         // return "https://backendforpuand-dream11.onrender.com";
         // return 'https://apk.thepowerplay.co';
-         return 'https://dream11bet.duckdns.org';
+         return 'https://fango11.duckdns.org';
         // return 'http://192.168.237.175:8000';
         // return 'http://46.28.44.4:8000';
         // return "https://dreamelevenclonebackend-g4iw.onrender.com";
@@ -81,7 +81,7 @@ function geturl() {
     // return "https://fantasycricket4u.com";
     // return "https://dreamelevenclonebackend-g4iw.onrender.com"
     // return "https://backend.dreambet11.io";
-     return "https://dream11bet.duckdns.org";
+     return "https://fango11.duckdns.org";
 }
 
 function getfrontendurl() {
