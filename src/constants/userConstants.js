@@ -96,5 +96,5 @@ function getfrontendurl() {
 export const URL = geturl();
 export const HTTPS_URL = "https://gamizo.duckdns.org";
 export const FURL = getfrontendurl();
-//export const VIDEO_URL="https://fango11.duckdns.org"
-export const VIDEO_URL = "http://localhost:8000"
+export const VIDEO_URL="https://gclteam.duckdns.org"
+//export const VIDEO_URL = "http://localhost:8000"
