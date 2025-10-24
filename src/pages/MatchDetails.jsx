@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, doc, query, getDoc, orderBy, onSnapshot } from 'firebase/firestore';
@@ -9,10 +9,15 @@ import exclusionMap from '../utils/exclusion_map.json';
 import { extractFieldsFromCommentary } from '@/utils/extractFromCommentary';
 import { updateDoc, doc as firestoreDoc, setDoc } from 'firebase/firestore';
 import EditCommentaryModal from "@/components/EditCommentaryModal";
+import { API } from '@/actions/userAction';
+import CommentarySection from '@/components/CommentarySection';
+import ScorecardSection from '@/components/ScorecardSection';
+import MatchHeader from '@/components/MatchHeader';
 
 export default function MatchDetails() {
   const { id } = useParams();
   const [commentary, setCommentary] = useState([]);
+  const [activeTab, setActiveTab] = useState('commentary');
   const [loading, setLoading] = useState(true);
   // Modal state for editing video link
   const [modalOpen, setModalOpen] = useState(false);
@@ -25,6 +30,8 @@ export default function MatchDetails() {
   const [inputCommentary, setInputCommentary] = useState({});
   const [selectedDirection, setSelectedDirection] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [match, setMatch] = useState(null);
+  const [matchLiveData, setMatchLiveData] = useState(null);
 
   // Fetch clips from /auth/allclips when modal opens
   useEffect(() => {
@@ -68,6 +75,20 @@ export default function MatchDetails() {
       ...(keeperCatch && { isKeeperCatch: true }),
     }));
   }, [inputCommentary]);
+
+  useEffect(() => {
+    async function getMatch() {
+      try {
+        const matchlivedata = await API.get(`${URL}/getmatchlive/${id}`);
+        setMatchLiveData(matchlivedata.data.match);
+        const matchData = await API.get(`${URL}/getmatch/${id}`);
+        setMatch(matchData.data.match);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getMatch();
+  }, [id])
 
   const openEditModal = (item) => {
     setEditingItem(item);
@@ -351,156 +372,52 @@ export default function MatchDetails() {
       });
     });
 
-  return (
-    <div className="p-2 max-w-5xl mx-auto bg-blue-50 rounded-xl shadow-md h-full overflow-y-auto">
-      <h2 className="font-bold text-2xl mb-6 ml-2">Live Commentary</h2>
+  const handleReport = async (clipLink) => {
+    await API.post(`${URL}/clips/report`, { clipId: clipLink })
+  }
 
-      {/* Directions Options */}
-      <div className="mb-6 ml-2">
-        <label className="block font-semibold mb-2">Directions:</label>
-        <div className="flex flex-wrap gap-2">
-          {directions.map(dir => (
-            <span
-              key={dir}
-              className="px-3 py-1 bg-gray-200 rounded text-sm text-gray-700"
-            >
-              {dir}
-            </span>
-          ))}
+  return (
+    <>
+      <div className="p-4 max-w-6xl mx-auto bg-blue-50 rounded-xl shadow-md overflow-y-auto">
+        {/* Match Info Section */}
+          <MatchHeader match={match} matchLiveData={matchLiveData} />
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-300 mb-4">
+          <button
+            className={`px-4 py-2 text-sm font-semibold transition ${activeTab === "commentary"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600 hover:text-blue-600"
+              }`}
+            onClick={() => setActiveTab("commentary")}
+          >
+            Commentary
+          </button>
+          <button
+            className={`px-4 py-2 text-sm font-semibold transition ${activeTab === "scorecard"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600 hover:text-blue-600"
+              }`}
+            onClick={() => setActiveTab("scorecard")}
+          >
+            Scorecard
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div>
+          {activeTab === "commentary" ? (
+            <CommentarySection
+              commentary={commentary}
+              directions={directions}
+              VIDEO_URL={VIDEO_URL}
+            />
+          ) : (
+            <ScorecardSection matchDetails={matchLiveData} />
+          )}
         </div>
       </div>
-
-      <div className="mx-auto">
-        {commentary.length > 0 ? (
-          commentary.map((item) =>
-            item.event === 'over-break' ? (
-              <div
-                key={item.timestamp}
-                className="my-4 p-4 bg-blue-100 border border-blue-200 rounded-lg shadow-sm"
-                style={{ maxWidth: 900, marginLeft: 'auto', marginRight: 'auto' }}
-              >
-                <div className="flex items-center justify-between">
-                  <h5 className="mb-1 text-blue-700 font-bold text-base">
-                    {item.commText || 'Break'}
-                  </h5>
-                  <button
-                    className="ml-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm whitespace-nowrap"
-                    style={{ whiteSpace: 'nowrap' }}
-                    onClick={() => openEditModal(item)}
-                  >
-                    Edit Video Link
-                  </button>
-                </div>
-                <div className="flex items-start gap-3">
-                  <p
-                    className="truncate text-blue-700 text-sm m-0"
-                    style={{ width: 350, minWidth: 350, maxWidth: 350, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                  >
-                    {item.commText}
-                  </p>
-                  {item.videoLink && (
-                    <video
-                      className="w-48 max-h-32 rounded-lg shadow transition-shadow hover:shadow-lg"
-                      controls
-                      muted
-                    >
-                      <source src={`${VIDEO_URL}/mockvideos/${item.videoLink}`} type="video/mp4" />
-                    </video>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className='bg-white rounded-lg shadow mb-4 mx-2 sm:mx-4 px-2 sm:px-4 py-3 '>
-                <div
-                  key={item.timestamp}
-                  className="flex items-start flex-col sm:flex-row transition-shadow hover:shadow-lg"
-                  style={{ maxWidth: 900 }}
-                >
-                  <div className="flex flex-col items-center justify-center pr-4 min-w-[38px]">
-                    <div className="flex justify-center items-center font-sans">
-                      {item.event === 'WICKET' ? (
-                        <span className="w-7 h-7 flex items-center justify-center rounded-full bg-red-600 text-white font-bold text-base shadow-md">
-                          W
-                        </span>
-                      ) : item.event === 'FOUR' ? (
-                        <span className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-900 text-white font-bold text-base shadow-md">
-                          4
-                        </span>
-                      ) : item.event === 'SIX' ? (
-                        <span className="w-7 h-7 flex items-center justify-center rounded-full bg-green-700 text-white font-bold text-base shadow-md">
-                          6
-                        </span>
-                      ) : null}
-                    </div>
-                    <span className="text-xs text-gray-500 mt-1">{item.overNumber}</span>
-                  </div>
-                  <div className="flex flex-1 sm:items-center justify-between gap-4 flex-col sm:flex-row text-left">
-                    <div
-                      className="text-left leading-6 text-base text-gray-900 font-sans w-5/6 flex items-start gap-4"
-                    >
-                      <span className="">{item.commText}</span>
-                    </div>
-                    <button
-                      className="ml-0 sm:ml-4 px-2 sm:px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm self-start whitespace-nowrap"
-                      style={{ whiteSpace: 'nowrap' }}
-                      onClick={() => openEditModal(item)}
-                    >
-                      Edit Video Link
-                    </button>
-                  </div>
-                </div>
-
-                <div className=''>
-                  {item.videoLink && (
-                    <>{item?.breakdown &&
-                      <div className="flex flex-wrap items-center text-sm text-gray-700 gap-x-4 gap-y-2 my-2 mb-3">
-                        <strong className=" text-gray-600">Score Breakdown:</strong>
-                        {Object.entries(item.breakdown).map(([key, value]) => (
-                          <div
-                            key={key}
-                            className="bg-gray-100 px-3 py-1 rounded-full shadow-sm border text-xs text-gray-800"
-                          >
-                            {key.replace(/([A-Z])/g, ' $1')}: <strong>{value}</strong>
-                          </div>
-                        ))}
-                      </div>}
-                      <video
-                        className="w-full sm:w-48 sm:max-h-32 rounded-lg shadow transition-shadow hover:shadow-lg"
-                        controls
-                        muted
-                      >
-                        <source src={`${VIDEO_URL}/mockvideos/${item.videoLink}`} type="video/mp4" />
-                      </video>
-                    </>
-                  )}</div>
-              </div>
-            )
-          )
-        ) : (
-          <div className="text-gray-500 text-center py-8">No commentary available.</div>
-        )}
-      </div>
-
-      {/* Modal */}
-
-      <EditCommentaryModal
-        open={modalOpen}
-        onClose={closeModal}
-        onSave={handleSave}
-        inputCommentary={inputCommentary}
-        setInputCommentary={setInputCommentary}
-        filterValues={filterValues}
-        handleFilterChange={handleFilterChange}
-        clips={clips}
-        filteredClips={filteredClips}
-        clipsLoading={clipsLoading}
-        newVideoLink={newVideoLink}
-        setNewVideoLink={setNewVideoLink}
-        loading={loading}
-        setSearchTerm={setSearchTerm}
-        searchTerm={searchTerm}
-      />
-    </div>
+    </>
   );
 }
 

@@ -79,7 +79,7 @@ export default function EditCommentaryModal({
                         </span>
                         {clip.clip && (
                           <video
-                            className="w-24 h-12 rounded shadow"
+                            className="w-34 h-22 rounded shadow"
                             controls
                             muted
                             style={{ minWidth: "6rem" }}
